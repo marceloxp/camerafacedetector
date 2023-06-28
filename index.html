@@ -1,26 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detecção de Rostos em Câmera</title>
-    <style>
-        #video {
-            width: 100%;
-            height: auto;
-        }
-
-        #canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <h1>Detecção de Rostos em Câmera</h1>
+    <!-- <h1>Detecção de Rostos em Câmera</h1> -->
     <video id="video" autoplay></video>
     <canvas id="canvas"></canvas>
 
@@ -29,79 +17,7 @@
     <!-- Se você tiver baixado os modelos localmente, inclua-os a partir do seu servidor -->
     <!-- <script src="caminho/para/o/modelo.js"></script> -->
 
-    <script>
-        // Função para iniciar a detecção de rostos
-        function startFaceDetection() {
-            // Obter o elemento de vídeo
-            const videoElement = document.getElementById('video');
-
-            // Iniciar a captura de vídeo
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    videoElement.srcObject = stream;
-                    videoElement.onloadedmetadata = () => {
-                        videoElement.play();
-                        detectFaces();
-                    };
-                })
-                .catch(error => {
-                    console.error('Erro ao acessar a câmera: ', error);
-                });
-        }
-
-        // Função para detectar rostos no vídeo
-        function detectFaces() {
-            const videoElement = document.getElementById('video');
-            const canvas = document.getElementById('canvas');
-            const context = canvas.getContext('2d');
-
-            // Configurar o canvas com as dimensões do vídeo
-            canvas.width = videoElement.videoWidth;
-            canvas.height = videoElement.videoHeight;
-
-            // Detectar rostos a cada quadro do vídeo
-            function detect() {
-                context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-                faceapi.detectAllFaces(videoElement)
-                    .then(faces => {
-                        // Limpar o canvas
-                        context.clearRect(0, 0, canvas.width, canvas.height);
-
-                        // Desenhar retângulos em volta dos rostos detectados
-                        faces.forEach(face => {
-                            console.log("🚀 ~ file: index.html:79 ~ detect ~ face:", face)
-                            const { x, y, width, height } = face.box;
-                            context.beginPath();
-                            context.lineWidth = 2;
-                            context.strokeStyle = 'red';
-                            context.rect(x, y, width, height);
-                            context.stroke();
-                        });
-
-                        // Chamada recursiva para detectar rostos no próximo quadro
-                        requestAnimationFrame(detect);
-                    })
-                    .catch(error => {
-                        console.log(error.message);
-                        console.error('Erro na detecção de rostos:', error);
-                    });
-            }
-
-            // Iniciar a detecção de rostos
-            detect();
-        }
-
-        // Carregar os modelos do Face-API.js e iniciar a detecção de rostos
-        Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri('models'),
-            faceapi.nets.ssdMobilenetv1.loadFromUri('models')
-        ])
-            .then(startFaceDetection)
-            .catch(error => {
-                console.error('Erro ao carregar os modelos do Face-API.js: ', error);
-            });
-
-    </script>
+    <script src="main.js"></script>
 </body>
 
 </html>
