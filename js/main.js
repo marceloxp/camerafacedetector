@@ -4,25 +4,43 @@ class FaceDetection {
         this.imageFiles = [
             {
                 name: 'Sheldon',
-                file: './persons/sheldon.jpg',
+                files: [
+                    './persons/sheldon-001.png',
+                    './persons/sheldon-002.png',
+                    './persons/sheldon-003.png',
+                    './persons/sheldon-004.png'
+                ]
             },
             {
                 name: 'Tony Stark',
-                file: './persons/tony-stark-1.jpg',
+                files: [
+                    './persons/tony-stark-001.png',
+                    './persons/tony-stark-002.png',
+                    './persons/tony-stark-003.png',
+                    './persons/tony-stark-004.png'
+                ]
             },
         ];
+
         this.faceMatcher = null;
     }
 
     async loadImages() {
-        const imagePromises = this.imageFiles.map(async (file) => {
-            const image = await faceapi.fetchImage(file.file);
-            this.imageCache[file.file] = image;
-            console.log('Imagem carregada:', file.file);
-        });
+        const imagePromises = [];
+
+        for (const fileGroup of this.imageFiles) {
+            const imageGroupPromises = fileGroup.files.map(async (file) => {
+                const image = await faceapi.fetchImage(file);
+                this.imageCache[file] = image;
+                console.log('Imagem carregada:', file);
+            });
+
+            imagePromises.push(...imageGroupPromises);
+        }
 
         await Promise.all(imagePromises);
     }
+
 
     async startFaceDetection() {
         const videoElement = document.getElementById('video');
@@ -57,6 +75,10 @@ class FaceDetection {
                 const face = await faceapi.detectSingleFace(videoElement);
                 if (face) {
                     await this.processFace(context, canvas, face, videoElement, resultElement);
+                } else {
+                    if (resultElement.textContent != 'Nenhum rosto detectado.') {
+                        resultElement.textContent = 'Nenhum rosto detectado.';
+                    }
                 }
             } catch (error) {
                 console.error('Erro na detecção de rostos:', error);
@@ -94,9 +116,11 @@ class FaceDetection {
             return;
         }
 
-        const bestMatch = this.faceMatcher.findBestMatch(unknownFaceDescriptor.descriptor);
+        const descriptors = unknownFaceDescriptor.descriptor;
+        const bestMatch = this.faceMatcher.findBestMatch(descriptors);
 
-        if (bestMatch.distance < 0.5) {
+        console.log("🚀 ~ file: main.js:119 ~ bestMatch.distance:", bestMatch.label, bestMatch.distance)
+        if (bestMatch.distance < 0.65) {
             resultElement.textContent = `Rosto correspondente: ${bestMatch.label}`;
         } else {
             resultElement.textContent = 'Nenhum rosto correspondente encontrado.';
@@ -120,21 +144,32 @@ class FaceDetection {
 
             box.show('Montando descritores...');
             const labeledDescriptors = [];
-            for (const file of this.imageFiles) {
-                const image = this.imageCache[file.file];
-                const detection = await faceapi
-                    .detectSingleFace(image)
-                    .withFaceLandmarks()
-                    .withFaceDescriptor();
 
-                if (detection) {
-                    const descriptor = detection.descriptor;
-                    labeledDescriptors.push(
-                        new faceapi.LabeledFaceDescriptors(file.name, [descriptor])
-                    );
-                } else {
-                    console.error('Nenhum rosto detectado na imagem:', file.file);
+            for (const fileGroup of this.imageFiles) {
+                const imageGroupDescriptors = [];
+                
+                let k = 1;
+                for (const file of fileGroup.files) {
+                    const image = this.imageCache[file];
+                    const detection = await faceapi
+                        .detectSingleFace(image)
+                        .withFaceLandmarks()
+                        .withFaceDescriptor();
+
+                    if (detection) {
+                        const descriptor = detection.descriptor;
+                        imageGroupDescriptors.push(descriptor);
+                    } else {
+                        console.error('Nenhum rosto detectado na imagem:', file);
+                    }
                 }
+
+                if (imageGroupDescriptors.length > 0) {
+                    for (const descriptor of imageGroupDescriptors) {
+                        labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(`${fileGroup.name}`, [descriptor]));
+                    }
+                }
+                k++;
             }
 
             box.show('Carregando rostos...');
