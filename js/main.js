@@ -107,6 +107,7 @@ class FaceDetection {
 
     async initializeModels() {
         try {
+            box.show('Inicializando modelos...');
             await Promise.all([
                 faceapi.nets.tinyFaceDetector.loadFromUri('models'),
                 faceapi.nets.faceLandmark68Net.loadFromUri('models'),
@@ -114,8 +115,10 @@ class FaceDetection {
                 faceapi.nets.ssdMobilenetv1.loadFromUri('models'),
             ]);
 
+            box.show('Carregando imagens...');
             await this.loadImages();
 
+            box.show('Montando descritores...');
             const labeledDescriptors = [];
             for (const file of this.imageFiles) {
                 const image = this.imageCache[file.file];
@@ -134,9 +137,13 @@ class FaceDetection {
                 }
             }
 
+            box.show('Carregando rostos...');
             this.faceMatcher = new faceapi.FaceMatcher(labeledDescriptors);
 
+            box.show('Quase pronto!');
             this.startFaceDetection();
+
+            box.hide();
         } catch (error) {
             console.error('Erro ao carregar os modelos do Face-API.js: ', error);
         }
