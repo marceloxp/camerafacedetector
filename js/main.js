@@ -11,19 +11,20 @@ class FaceDetection {
                 file: './persons/tony-stark-1.jpg',
             },
         ];
+        this.faceMatcher = null;
     }
 
     async loadImages() {
-        for (const file of this.imageFiles) {
+        const imagePromises = this.imageFiles.map(async (file) => {
             const image = await faceapi.fetchImage(file.file);
             this.imageCache[file.file] = image;
             console.log('Imagem carregada:', file.file);
-        }
+        });
+
+        await Promise.all(imagePromises);
     }
 
     async startFaceDetection() {
-        await this.loadImages();
-
         const videoElement = document.getElementById('video');
 
         navigator.mediaDevices
@@ -84,86 +85,24 @@ class FaceDetection {
         );
         context.stroke();
 
-        const results = [];
+        const unknownFaceDescriptor = await faceapi
+            .detectSingleFace(videoElement)
+            .withFaceLandmarks()
+            .withFaceDescriptor();
 
-        for (const file of this.imageFiles) {
-            const image = this.imageCache[file.file];
-            console.log('Imagem a comparar:', file.file);
-
-            const resizedImage = faceapi.createCanvasFromMedia(image);
-            faceapi.matchDimensions(resizedImage, {
-                width: detections.box.width,
-                height: detections.box.height,
-            });
-            const resizedContext = resizedImage.getContext('2d');
-            resizedContext.drawImage(
-                image,
-                0,
-                0,
-                image.width,
-                image.height,
-                0,
-                0,
-                resizedImage.width,
-                resizedImage.height
-            );
-
-            const detection = await faceapi
-                .detectSingleFace(resizedImage)
-                .withFaceLandmarks()
-                .withFaceDescriptor();
-            if (detection) {
-                await this.processCompare(detection, image, results, file);
-            }
+        if (!unknownFaceDescriptor) {
+            return;
         }
 
-        let distancesStr = '';
-        if (results.length > 1) {
-            console.log('Before order:', results);
-            results.sort((a, b) => a.distance - b.distance);
-            console.log('After order:', results);
+        const bestMatch = this.faceMatcher.findBestMatch(unknownFaceDescriptor.descriptor);
 
-            distancesStr = `${results
-                .map(({ file, distance }) => `${file.name} - ${distance.toFixed(2)}`)
-                .join('\n')}`;
-
-            if (results.length > 0 && results[0].distance < 0.5) {
-                const closestImage = results[0];
-                resultElement.textContent = `Rosto correspondente: ${closestImage.file.name}`;
-            } else {
-                resultElement.textContent = 'Nenhum rosto correspondente encontrado.';
-            }
+        if (bestMatch.distance < 0.5) {
+            resultElement.textContent = `Rosto correspondente: ${bestMatch.label}`;
         } else {
-            resultElement.textContent = 'Nada processado no momento.';
+            resultElement.textContent = 'Nenhum rosto correspondente encontrado.';
         }
-        resultElement.textContent += `  - distancesStr: ${distancesStr}`;
-        console.log('RESULTADO:', resultElement.textContent);
-    }
 
-    async processCompare(detection, image, results, file) {
-        const descriptor = detection.descriptor;
-        try {
-            const faceWithDescriptor = await faceapi
-                .detectSingleFace(image)
-                .withFaceLandmarks()
-                .withFaceDescriptor();
-            if (faceWithDescriptor) {
-                const distance = faceapi.euclideanDistance(
-                    descriptor,
-                    faceWithDescriptor.descriptor
-                );
-                results.push({ file, distance });
-                console.log(
-                    '🚀 ~ file: main.js:81 ~ images.forEach ~ file, distance:',
-                    file,
-                    distance
-                );
-            } else {
-                console.error('Nenhum rosto detectado na imagem:', file);
-            }
-        } catch (error) {
-            console.error('Erro ao computar os descritores do rosto:', error);
-        }
+        console.log('RESULTADO:', resultElement.textContent);
     }
 
     async initializeModels() {
@@ -174,6 +113,28 @@ class FaceDetection {
                 faceapi.nets.faceRecognitionNet.loadFromUri('models'),
                 faceapi.nets.ssdMobilenetv1.loadFromUri('models'),
             ]);
+
+            await this.loadImages();
+
+            const labeledDescriptors = [];
+            for (const file of this.imageFiles) {
+                const image = this.imageCache[file.file];
+                const detection = await faceapi
+                    .detectSingleFace(image)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (detection) {
+                    const descriptor = detection.descriptor;
+                    labeledDescriptors.push(
+                        new faceapi.LabeledFaceDescriptors(file.name, [descriptor])
+                    );
+                } else {
+                    console.error('Nenhum rosto detectado na imagem:', file.file);
+                }
+            }
+
+            this.faceMatcher = new faceapi.FaceMatcher(labeledDescriptors);
 
             this.startFaceDetection();
         } catch (error) {
