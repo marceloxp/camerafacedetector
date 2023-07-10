@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,26 +13,10 @@
     <video id="video" autoplay></video>
     <canvas id="canvas"></canvas>
     <h2 id="result"></h2>
-    <div id="status">Aguarde...</div>
-    <div id="svgContainer">
-        <svg id="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="300" height="300">
-            <circle cx="50" cy="50" r="45" fill="#ffffff00" stroke="#ff0000" stroke-width="4">
-                <animate attributeName="r" from="45" to="40" dur="1s" repeatCount="indefinite" />
-                <animate attributeName="stroke-dasharray" from="0,150" to="150,0" dur="1.5s" repeatCount="indefinite" />
-                <animate attributeName="stroke-dashoffset" from="-75" to="-225" dur="1.5s" repeatCount="indefinite" />
-            </circle>
-
-            <line x1="0" y1="20" x2="100" y2="20" stroke="#00ff00" stroke-width="2">
-                <animate attributeName="y1" values="0;100;0" dur="3s" repeatCount="indefinite" />
-                <animate attributeName="y2" values="0;100;0" dur="3s" repeatCount="indefinite" />
-                <animate attributeName="keyTimes" values="1;0.5;1" dur="3s" repeatCount="indefinite" />
-            </line>
-        </svg>
-    </div>
+    <div id="status">Inicializando...</div>
 
     <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
     <script src="./js/common.js"></script>
     <script src="./js/main.js"></script>
 </body>
-
 </html>
