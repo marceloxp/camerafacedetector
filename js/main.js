@@ -64,6 +64,7 @@ class FaceDetection {
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
         const resultElement = document.getElementById('result');
+        const svgContainer = document.getElementById('svgContainer');
 
         canvas.width = videoElement.videoWidth;
         canvas.height = videoElement.videoHeight;
@@ -75,7 +76,9 @@ class FaceDetection {
                 const face = await faceapi.detectSingleFace(videoElement);
                 if (face) {
                     await this.processFace(context, canvas, face, videoElement, resultElement);
+                    svgContainer.classList.add('detected');
                 } else {
+                    svgContainer.classList.remove('detected');
                     if (resultElement.textContent != 'Nenhum rosto detectado.') {
                         resultElement.textContent = 'Nenhum rosto detectado.';
                     }
@@ -96,16 +99,38 @@ class FaceDetection {
             width: videoElement.videoWidth,
             height: videoElement.videoHeight,
         });
-        context.beginPath();
-        context.lineWidth = 2;
-        context.strokeStyle = 'red';
-        context.rect(
-            detections.box.x,
-            detections.box.y,
-            detections.box.width,
-            detections.box.height
-        );
-        context.stroke();
+
+        // context.beginPath();
+        // context.lineWidth = 2;
+        // context.strokeStyle = 'red';
+        // context.rect(
+        //     detections.box.x,
+        //     detections.box.y,
+        //     detections.box.width,
+        //     detections.box.height
+        // );
+        // context.stroke();
+
+        const svgContainer = document.getElementById('svgContainer');
+        const svg = document.getElementById('svg');
+        const faceRect = detections.box;
+        const canvasTop = document.getElementById('canvas').offsetTop;
+
+        svgContainer.style.left = faceRect.x + 'px';
+        svgContainer.style.top = faceRect.y + canvasTop + 'px';
+        svgContainer.style.width = faceRect.width + 'px';
+        svgContainer.style.height = faceRect.height + 'px';
+
+        const svgAspectRatio = svg.viewBox.baseVal.width / svg.viewBox.baseVal.height;
+        const faceAspectRatio = faceRect.width / faceRect.height;
+
+        if (svgAspectRatio > faceAspectRatio) {
+            svg.style.width = '100%';
+            svg.style.height = 'auto';
+        } else {
+            svg.style.width = 'auto';
+            svg.style.height = '100%';
+        }
 
         const unknownFaceDescriptor = await faceapi
             .detectSingleFace(videoElement)
@@ -147,7 +172,7 @@ class FaceDetection {
 
             for (const fileGroup of this.imageFiles) {
                 const imageGroupDescriptors = [];
-                
+
                 let k = 1;
                 for (const file of fileGroup.files) {
                     const image = this.imageCache[file];
